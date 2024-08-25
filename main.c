@@ -40,7 +40,7 @@ enum FolderType {
     ERROR, // because we dont have good error handling in C, and you can't return -1 here
 };
 
-void fAbortIfError(bool should_abort) {
+void abort_if_error(bool should_abort) {
     if (should_abort) {
         puts("aborting on error");
         exit(EXIT_FAILURE);
@@ -50,44 +50,44 @@ void fAbortIfError(bool should_abort) {
 /**
  * you exit manually; im not doing that for you :3
  */
-void fPrintError(char* app_name) {
+void print_error(char* app_name) {
     fprintf(stderr, "Usage: %s [-hrfd] -- file_name\n", app_name);
 }
 
-enum FolderType fDirContainsFiles(const char* path) {
-    struct stat sPathStat;
-    DIR *dDir;
-    struct dirent *diEntry;
+enum FolderType dir_contains_files(const char* path) {
+    struct stat path_stat;
+    DIR *dir;
+    struct dirent *entry;
     int has_files = 0;
 
     // check if path exists...
-    if (stat(path, &sPathStat) != 0) {
+    if (stat(path, &path_stat) != 0) {
         perror("error getting file status");
         return DOES_NOT_EXIST;
     }
 
     // ... then if its a directory...
-    if (!S_ISDIR(sPathStat.st_mode)) {
+    if (!S_ISDIR(path_stat.st_mode)) {
         return NOT_A_DIR;
     }
 
     // ... then try to open it...
-    dDir = opendir(path);
-    if (dDir == NULL) {
+    dir = opendir(path);
+    if (dir == NULL) {
         perror("Error opening directory");
         return ERROR;
     }
 
     // ... to see if it has any files within
-    while ((diEntry = readdir(dDir)) != NULL) {
+    while ((entry = readdir(dir)) != NULL) {
         // skip `.` and `..` entries
-        if (strcmp(diEntry->d_name, ".") != 0 && strcmp(diEntry->d_name, "..") != 0) {
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
             has_files = true;
             break;
         }
     }
 
-    closedir(dDir); // don't memleak now, silly
+    closedir(dir); // don't memleak now, silly
 
     if (has_files) {
         return CONTAINS_FILES;
@@ -96,19 +96,19 @@ enum FolderType fDirContainsFiles(const char* path) {
     }
 }
 
-int fRecursiveDelete(const char* file, struct RmOptions rm) {
+int recursive_delete(const char* file, struct RmOptions rm) {
     DEBUGPRINT("??? %s\n", file);
-    DIR *dDir;
+    DIR *dir;
     struct dirent *entry;
     char file_path[PATH_MAX];
 
-    dDir = opendir(file);
-    if (dDir == NULL) {
+    dir = opendir(file);
+    if (dir == NULL) {
         perror("Error opening directory");
         return 1;
     }
 
-    while ((entry = readdir(dDir)) != NULL) {
+    while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;
         }
@@ -121,7 +121,7 @@ int fRecursiveDelete(const char* file, struct RmOptions rm) {
         if (S_ISDIR(path_stat.st_mode)) {
             DEBUGPRINT("%s is dir\n", file_path);
             // tail call optimization won't save me now
-            fRecursiveDelete(file_path, rm);
+            recursive_delete(file_path, rm);
             if (rm.dry_run) {
                 printf("Would delete %s\n", file_path);
                 return 0;
@@ -147,12 +147,12 @@ int fRecursiveDelete(const char* file, struct RmOptions rm) {
         }
     }
 
-    closedir(dDir);
+    closedir(dir);
     return 0;
 }
 
-void fTryDeleteFile(const char* file, struct RmOptions rm) {
-    enum FolderType folder_type = fDirContainsFiles(file);
+void try_delete_file(const char* file, struct RmOptions rm) {
+    enum FolderType folder_type = dir_contains_files(file);
     switch (folder_type) {
         case CONTAINS_FILES:
             if (!rm.recursive) {
@@ -164,9 +164,9 @@ void fTryDeleteFile(const char* file, struct RmOptions rm) {
 
             // scary!
             // remove files recursively then remove the folder itself.
-            if (fRecursiveDelete(file, rm) != 0) {
+            if (recursive_delete(file, rm) != 0) {
                 perror("Error deleting file");
-                fAbortIfError(rm.abort_on_error);
+                abort_if_error(rm.abort_on_error);
             }
             if (rm.dry_run) {
                 printf("Would delete %s", file);
@@ -174,7 +174,7 @@ void fTryDeleteFile(const char* file, struct RmOptions rm) {
             }
             if (remove(file) != 0) {
                 perror("Error deleting file");
-                fAbortIfError(rm.abort_on_error);
+                abort_if_error(rm.abort_on_error);
             }
 
             break;
@@ -186,18 +186,18 @@ void fTryDeleteFile(const char* file, struct RmOptions rm) {
             }
             if (remove(file) != 0) {
                 perror("Error deleting file");
-                fAbortIfError(rm.abort_on_error);
+                abort_if_error(rm.abort_on_error);
             }
             break;
         case DOES_NOT_EXIST:
             // it's not a bug, but a feature.
             // *((char*)0) = 0;
             // __builtin_unreachable();
-            fAbortIfError(rm.abort_on_error);
+            abort_if_error(rm.abort_on_error);
             break;
         default:
             fprintf(stderr, "Not Implemented");
-            fAbortIfError(rm.abort_on_error);
+            abort_if_error(rm.abort_on_error);
             break;
     }
 }
@@ -205,11 +205,11 @@ void fTryDeleteFile(const char* file, struct RmOptions rm) {
 int main(int argc, char *argv[]) {
     // i fukcing forgot what this variable is supposed to represent
     int c;
-    int iArgsIndex = 0;
+    int args_index = 0;
 
     // whether '--' keyword is already parsed; if so, then don't skip it again and treat it as a file
     // incase user has a file literally called '--'
-    bool bAlreadyParsedDoubleDash = false;
+    bool rt_already_parsed_double_dash = false;
 
     struct RmOptions meow;
 
@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
     };
 
     while ((c = getopt_long(argc, argv, "hrfd", long_options, NULL)) != -1) {
-        iArgsIndex++;
+        args_index++;
         switch (c) {
             case 'h':
                 printf("Help option\n");
@@ -247,23 +247,23 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    DEBUGPRINT("args_index: %i\n", iArgsIndex);
+    DEBUGPRINT("args_index: %i\n", args_index);
     for (int i = 0; i < argc; i++) {
         // compiler will optimize and remove this useless loop
         DEBUGPRINT("argv[%i]: %s\n", i, argv[i]);
     }
 
-    if (iArgsIndex + 1 == argc) {
+    if (args_index + 1 == argc) {
         fprintf(stderr, "Fatal error: no file(s) specified; no clue what to delete");
-        fPrintError(argv[0]);
+        print_error(argv[0]);
         return EXIT_FAILURE;
     }
 
-    for (int i = iArgsIndex + 1; i < argc; i++) {
+    for (int i = args_index + 1; i < argc; i++) {
         DEBUGPRINT("index: %i\n", i);
         // if (rt_already_parsed_double_dash && strcmp(argv[i], "--") == 0) {
-        if (!bAlreadyParsedDoubleDash && strcmp(argv[i], "--") == 0) {
-            bAlreadyParsedDoubleDash = true;
+        if (!rt_already_parsed_double_dash && strcmp(argv[i], "--") == 0) {
+            rt_already_parsed_double_dash = true;
             DEBUGPRINT("skipping -- (first hit)\n");
             // its a --; don't skip it again
             continue;
@@ -271,7 +271,7 @@ int main(int argc, char *argv[]) {
         if (meow.dry_run) {
             printf("would delete: %s\n", argv[i]); // last element seems to be nah
         } else {
-            fTryDeleteFile(argv[i], meow);
+            try_delete_file(argv[i], meow);
             // remove(argv[i]);
         }
     }

@@ -230,15 +230,12 @@ int main(int argc, char *argv[]) {
                 break;
             case 'r':
                 meow.recursive = true;
-                printf("recursive\n");
                 break;
             case 'f':
                 meow.force = true;
-                printf("force\n");
                 break;
             case 'd':
                 meow.dry_run = true;
-                printf("dry run\n");
                 break;
             default:
                 // TODO: this

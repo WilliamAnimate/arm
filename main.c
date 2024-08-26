@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
     // incase user has a file literally called '--'
     bool rt_already_parsed_double_dash = false;
 
-    struct RmOptions meow;
+    struct RmOptions rm;
 
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
@@ -229,13 +229,13 @@ int main(int argc, char *argv[]) {
                 printf("Help option\n");
                 break;
             case 'r':
-                meow.recursive = true;
+                rm.recursive = true;
                 break;
             case 'f':
-                meow.force = true;
+                rm.force = true;
                 break;
             case 'd':
-                meow.dry_run = true;
+                rm.dry_run = true;
                 break;
             default:
                 // TODO: this
@@ -265,10 +265,10 @@ int main(int argc, char *argv[]) {
             // its a --; don't skip it again
             continue;
         }
-        if (meow.dry_run) {
+        if (rm.dry_run) {
             printf("would delete: %s\n", argv[i]); // last element seems to be nah
         } else {
-            try_delete_file(argv[i], meow);
+            try_delete_file(argv[i], rm);
             // remove(argv[i]);
         }
     }

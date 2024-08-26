@@ -219,7 +219,6 @@ int main(int argc, char *argv[]) {
         {"force", no_argument, 0, 'f'},
         {"dry", no_argument, 0, 'd'},
         {"dry-run", no_argument, 0, 'd'},
-        {0, 0, 0, 0}
     };
 
     while ((c = getopt_long(argc, argv, "hrfd", long_options, NULL)) != -1) {

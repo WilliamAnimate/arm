@@ -11,7 +11,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdbool.h>
 #include <getopt.h>
 #include <string.h> // we're gonna get hacked so hard
@@ -62,7 +61,6 @@ enum FolderType dir_contains_files(const char* path) {
 
     // check if path exists...
     if (stat(path, &path_stat) != 0) {
-        perror("error getting file status");
         return DOES_NOT_EXIST;
     }
 
@@ -190,9 +188,7 @@ void try_delete_file(const char* file, struct RmOptions rm) {
             }
             break;
         case DOES_NOT_EXIST:
-            // it's not a bug, but a feature.
-            // *((char*)0) = 0;
-            // __builtin_unreachable();
+            perror(NULL);
             abort_if_error(rm.abort_on_error);
             break;
         default:
@@ -266,10 +262,9 @@ int main(int argc, char *argv[]) {
         }
         if (rm.dry_run) {
             printf("would delete: %s\n", argv[i]); // last element seems to be nah
-        } else {
-            try_delete_file(argv[i], rm);
-            // remove(argv[i]);
-        }
+        } 
+        // this respects dry run
+        try_delete_file(argv[i], rm);
     }
 
     return EXIT_SUCCESS;
